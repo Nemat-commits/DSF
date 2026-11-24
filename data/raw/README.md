@@ -1,7 +1,10 @@
 # Simulated 14-day shelf log — data dictionary
 
-Source: `src/dsf/generate_data.py` (seed `20261124`). This file is a **simulation**,
-not a record of a real shop. See the top-level README for the full disclosure.
+Source: `src/dsf/generate_data.py` (seed `20261124`). This file is a **simulation**
+set in a fictional Abbottabad neighbourhood shop. It is **not** a record of a real
+shop, and no shopkeeper in Abbottabad supplied data. See the top-level README for
+the full disclosure and `docs/DATA_COLLECTION_PROTOCOL.md` for how to gather a
+genuine consented log.
 
 | Field | Type | Description |
 |---|---|---|

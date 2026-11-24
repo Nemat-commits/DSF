@@ -4,10 +4,13 @@ IMPORTANT — data provenance
 ---------------------------
 The brief asks for counts logged with a shopkeeper twice per sale period over
 14 days. That field visit was not possible for this submission, so this module
-produces a *simulation* of such a log. It is deliberately realistic (weekend
-lifts, evening peaks, reorder points, finite shelf capacity, integer counts)
-but it is NOT a record of any real shop, person or product. Only anonymous
-item codes and counts are written — no commercial item-level details.
+produces a *simulation* of such a log. The fictional scenario is set in an
+Abbottabad neighbourhood shop (weekend lift on Saturday/Sunday, morning and
+evening sale periods); this is a setting for the simulation, not a claim that
+any real shop or shopkeeper in Abbottabad supplied data. It is deliberately
+realistic (weekend lifts, evening peaks, reorder points, finite shelf capacity,
+integer counts) but it is NOT a record of any real shop, person or product.
+Only anonymous item codes and counts are written — no commercial details.
 """
 
 from __future__ import annotations

@@ -25,6 +25,14 @@ PREDICTIONS = PROCESSED_DIR / "test_predictions.csv"
 METRICS = MODEL_DIR / "metrics.json"
 
 SEED = 20261124
+# Fictional setting only. This is a scenario label for the simulator, NOT a
+# claim that any shop in Abbottabad was visited or supplied data.
+SCENARIO_NAME = "Fictional neighbourhood shop in Abbottabad"
+ITEM_CATEGORIES = {
+    "ITEM-A": "tea sachets (generic)",
+    "ITEM-B": "biscuit packs (generic)",
+    "ITEM-C": "instant noodle packs (generic)",
+}
 START_DATE = "2026-10-05"
 N_DAYS = 14
 TEST_DAYS = 4

@@ -7,6 +7,7 @@ documents always agree with the trained models.
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 from PIL import Image as PILImage
@@ -24,7 +25,8 @@ from reportlab.platypus import (Image, PageBreak, Paragraph, SimpleDocTemplate,
                                 Spacer, Table, TableStyle)
 
 from .config import (DASHBOARD_DIR, FIGURE_DIR, METRICS, OUTPUT_DIR, REPORT_DIR,
-                     ROOT, SEED, ensure_dirs)
+                     ROOT, SCENARIO_NAME, SEED, SLOTS, START_DATE, ensure_dirs,
+                     ITEM_PROFILES)
 
 NAVY = colors.HexColor("#0e1b2a")
 TEAL = colors.HexColor("#148f83")
@@ -97,9 +99,12 @@ def make_pdf(metrics: dict) -> Path:
         "feasible for this submission. The 14-day log analysed here is a "
         "reproducible <b>simulation</b> of a shopkeeper's before/after-sale counts "
         "(fictional shop, anonymous item codes, integer counts, no prices, brands, "
-        "suppliers or identities). No real commercial information is disclosed and "
-        "no consent from a real shopkeeper is claimed. Replace this log with a "
-        "genuine consented log before any operational use.", s["NoteBox"])]],
+        "suppliers or identities). The fictional scenario is set in an Abbottabad "
+        "neighbourhood shop; that is a setting for the simulation, not evidence "
+        "that any shop or shopkeeper there was visited. No real commercial "
+        "information is disclosed and no consent from a real shopkeeper is claimed. "
+        "Replace this log with a genuine consented log before operational use.",
+        s["NoteBox"])]],
         colWidths=[16.4 * cm])
     box.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fff3d6")),
@@ -143,8 +148,23 @@ def make_pdf(metrics: dict) -> Path:
         "the visit could not happen, the same schema was populated by a seeded "
         "simulator that mimics the mechanics the log would show: evening demand "
         "above morning demand, a weekend lift, finite shelf capacity, reorder "
-        "points and restock events. The simulator source and seed "
-        f"({SEED}) are in the repository, so every figure is reproducible.", s["Body2"])]
+        "points and restock events. The fictional scenario is set in an Abbottabad "
+        "neighbourhood shop (Saturday/Sunday weekend lift, morning and evening sale "
+        "periods); this is a setting for the simulation and not a claim about any "
+        "real shop. The simulator source and seed "
+        f"({SEED}) are in the repository, so every figure is reproducible.",
+        s["Body2"])]
+    story += [Paragraph("Why direct collection was not feasible", s["H2"])]
+    story += [Paragraph(
+        "A supervised visit to a seller, with permission to record 14 days of "
+        "counts, could not be arranged within the submission window. Rather than "
+        "invent a field visit or imply that a shopkeeper supplied these numbers, "
+        "we simulated the log with the required schema and documented that choice "
+        "in the repository, dashboard and slides. The accompanying collection "
+        "protocol and blank log sheets in `docs/` and `outputs/reports/` describe "
+        "how a genuine consented log can be gathered and swapped in later. This "
+        "limits what the project can claim: no result here is evidence about a "
+        "real shop.", s["Body2"])]
     story += [Paragraph("Data dictionary", s["H2"])]
     story += [_table([
         ["Field", "Type", "Meaning / range"],
@@ -355,7 +375,8 @@ def make_pptx(metrics: dict) -> Path:
     _text(slide, "Estimate stock remaining at the next shelf check\n"
                  "Linear Regression · Decision Tree · Random Forest · Flask dashboard",
           0.85, 3.8, 11.5, 1.0, size=16)
-    _text(slide, "SIMULATED 14-DAY LOG — no real shop, item, brand or price data",
+    _text(slide, "SIMULATED 14-DAY LOG · fictional Abbottabad shop scenario · "
+                 "no real shop, item, brand or price data",
           0.85, 5.5, 11.5, 0.4, size=13, color=RGBColor(255, 180, 84), bold=True)
 
     # 2 — decision and plan
@@ -376,17 +397,17 @@ def make_pptx(metrics: dict) -> Path:
     s = new("Data, provenance & safety", "What was actually used")
     _text(s, "168 checks = 14 days × 3 anonymous items × 4 slots", 0.7, 1.35,
           12, 0.5, size=20, bold=True)
-    _text(s, "• Seeded simulation of a shopkeeper's log (fictional shop)\n"
+    _text(s, f"• Seeded simulation; fictional setting: {SCENARIO_NAME}\n"
              "• Realistic weekend lift, evening peaks, reorder points, refills\n"
              "• ITEM-A/B/C only: no brand, price, supplier, shop or person\n"
-             "• No consent claim; synthetic origin is stated in every deliverable\n"
+             "• No field visit was arranged, so no consent or evidence is claimed\n"
              "• A real consented log must replace this before operational use",
           0.8, 2.1, 11.8, 3.2, size=16)
     _text(s, "Safety rule: do not share item-level commercial information without consent.",
           0.8, 5.7, 11.8, 0.5, size=15, color=RGBColor(255, 180, 84))
 
     # 4 — sample log
-    s = new("What one day of the log looks like", "Exact schema from the brief")
+    s = new("One simulated day in the log", "Exact schema from the brief")
     table = s.shapes.add_table(9, 5, Inches(0.8), Inches(1.4),
                                Inches(11.7), Inches(4.8)).table
     sample = [
@@ -547,12 +568,68 @@ def make_handwritten_notes() -> Path:
     return path
 
 
+def make_field_log_template() -> Path:
+    """Printable BLANK sheets for a real, consented 14-day collection."""
+    ensure_dirs()
+    path = REPORT_DIR / "field_log_blank_template.pdf"
+    doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=1.6 * cm,
+                            rightMargin=1.6 * cm, topMargin=1.5 * cm,
+                            bottomMargin=1.5 * cm,
+                            title="Blank 14-day field log sheet")
+    s = _style_sheet()
+    start = date.fromisoformat(START_DATE)
+    days = [start + timedelta(days=i) for i in range(14)]
+
+    story: list = [
+        Paragraph("Blank 14-day field log sheet", s["TitleBig"]),
+        Paragraph("For a genuine, consented collection only. Fill one row per "
+                  "check; use ITEM-A/B/C, never real shop, brand or price details.",
+                  s["Sub"]),
+        Paragraph("Consent reminder", s["H2"]),
+        Paragraph("Ask the shopkeeper first; explain that only anonymous counts "
+                  "will be used, that they may stop at any time, and that photos "
+                  "need separate permission. Keep the signed/agreed note private.",
+                  s["Body2"]),
+        Paragraph("Slots: pre_morning = before morning sales; post_morning = after "
+                  "them; pre_evening = before evening sales; post_evening = after "
+                  "them. Write 0 in 'restocked' if nothing was added.", s["Small2"]),
+        PageBreak(),
+    ]
+
+    for offset in range(0, 14, 3):
+        chunk = days[offset:offset + 3]
+        story.append(Paragraph(f"Days {offset + 1}–{offset + len(chunk)}", s["H1"]))
+        for day in chunk:
+            story.append(Paragraph(day.isoformat(), s["H2"]))
+            rows = [["item_code", "slot", "stock_count", "restocked"]]
+            for item in ITEM_PROFILES:
+                for slot in SLOTS:
+                    rows.append([item, slot, "", ""])
+            table = Table(rows, colWidths=[3.0 * cm, 6.0 * cm, 4.4 * cm, 4.4 * cm],
+                          rowHeights=[0.45 * cm] + [0.5 * cm] * 12, hAlign="LEFT")
+            table.setStyle(TableStyle([
+                ("FONTSIZE", (0, 0), (-1, -1), 7.6),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9fb2c2")),
+                ("BACKGROUND", (0, 0), (-1, 0), LIGHT),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ]))
+            story += [table, Spacer(1, 8)]
+        story.append(PageBreak())
+
+    doc.build(story)
+    print(f"Wrote {path.relative_to(ROOT)}")
+    return path
+
+
 def main() -> None:
     with METRICS.open(encoding="utf-8") as fh:
         metrics = json.load(fh)
     make_pdf(metrics)
     make_pptx(metrics)
     make_handwritten_notes()
+    make_field_log_template()
 
 
 if __name__ == "__main__":

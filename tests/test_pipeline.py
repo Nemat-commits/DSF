@@ -6,7 +6,8 @@ import joblib
 import pandas as pd
 
 from dsf.config import (FEATURE_COLUMNS, FIGURE_DIR, METRICS, MODEL_DIR,
-                        MODELLING_SET, PREDICTIONS, RAW_LOG, REPORT_DIR, TARGET)
+                        MODELLING_SET, PREDICTIONS, RAW_LOG, REPORT_DIR, ROOT,
+                        TARGET)
 from dsf.dashboard_app import create_app
 from dsf.features import build_features, split_chronologically
 from dsf.generate_data import simulate_log, validate_log
@@ -55,6 +56,8 @@ def test_saved_artifacts_exist():
     assert (REPORT_DIR / "DSC293_Shelf_Stock_Forecast_Report.pdf").stat().st_size > 10_000
     assert (REPORT_DIR / "DSC293_Shelf_Stock_Forecast_Slides.pptx").stat().st_size > 10_000
     assert (REPORT_DIR / "handwritten_notes_facsimile.pdf").stat().st_size > 5_000
+    assert (REPORT_DIR / "field_log_blank_template.pdf").stat().st_size > 5_000
+    assert (ROOT / "docs" / "DATA_COLLECTION_PROTOCOL.md").stat().st_size > 1_000
     assert len(list(FIGURE_DIR.glob("*.png"))) >= 6
 
 

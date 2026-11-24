@@ -9,13 +9,15 @@ and a handwritten-style notes sheet.
 
 > ## Data provenance — read this first
 > A real shop visit was not feasible, so the log is a **reproducible simulation** of
-> a shopkeeper's log (fictional shop, anonymous `ITEM-A/B/C`, four checks per day for
-> 14 days). It is realistic in structure and behaviour — weekend lift, evening peaks,
-> reorder points, restocks — but it is **not** a record of any real shop, person,
-> brand, price or supplier, and no consent from a real shopkeeper is claimed. No
+> a shopkeeper's log, set in a **fictional Abbottabad neighbourhood shop** (anonymous
+> `ITEM-A/B/C`, four checks per day for 14 days). It is realistic in structure and
+> behaviour — weekend lift, evening peaks, reorder points, restocks — but it is
+> **not** a record of any real shop, person, brand, price or supplier. No shopkeeper
+> in Abbottabad was visited or supplied data, and no evidence photos are claimed. No
 > item-level commercial information is disclosed. If a real shop later provides a
 > log, obtain explicit consent, keep the raw log private and publish only
-> pseudonymised codes and counts.
+> pseudonymised codes and counts. `docs/DATA_COLLECTION_PROTOCOL.md` and
+> `outputs/reports/field_log_blank_template.pdf` are the kit for doing that.
 
 ## Results (chronological holdout: train days 1–10, test days 11–14)
 
@@ -56,7 +58,8 @@ data/processed/                       # feature table and held-out predictions
 src/dsf/                              # simulator, features, training, evaluation, dashboard, reports
 outputs/figures/                      # EDA and model charts
 outputs/models/                       # three joblib pipelines + metrics.json
-outputs/reports/                      # PDF report, PPTX slides, notes facsimile
+outputs/reports/                      # PDF report, PPTX slides, notes, blank field log
+docs/DATA_COLLECTION_PROTOCOL.md      # consent + real 14-day collection protocol
 dashboard/templates/index.html        # dashboard UI
 tests/                                # schema, pipeline and dashboard smoke tests
 assets/fonts/                         # Caveat font (SIL OFL) for the notes facsimile
