@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelf Stock Level Forecast — DSC293</title>
+<style>
+  :root { --navy:#0e1b2a; --panel:#16293c; --line:#25405a; --ink:#e8f1f8;
+          --muted:#9db4c7; --accent:#4cc2b4; --warn:#ffb454; --danger:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0b1622; color:var(--ink);
+         font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { background:linear-gradient(120deg,#132b42,#0e1b2a 65%);
+           border-bottom:1px solid var(--line); padding:22px 30px 18px; }
+  h1 { margin:0 0 4px; font-size:25px; letter-spacing:.2px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .badge { display:inline-block; background:#6d4b12; color:#ffe6b0; padding:3px 9px;
+           border-radius:20px; font-size:11px; font-weight:700; margin-left:10px;
+           vertical-align:middle; }
+  main { max-width:1240px; margin:0 auto; padding:24px 24px 60px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr));
+           gap:14px; margin-bottom:22px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+          padding:16px 18px; }
+  .card .label { color:var(--muted); font-size:11px; text-transform:uppercase;
+                 letter-spacing:.09em; }
+  .card .value { font-size:27px; font-weight:700; margin-top:5px; }
+  .card .hint { color:var(--muted); font-size:11px; margin-top:3px; }
+  .grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(290px,1fr); gap:18px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+           padding:18px 20px; margin-bottom:18px; }
+  .panel h2 { margin:0 0 14px; font-size:16px; }
+  .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+              margin-bottom:12px; }
+  select,input,button { background:#0e1f30; color:var(--ink); border:1px solid var(--line);
+                        border-radius:7px; padding:7px 9px; font-size:13px; }
+  button { background:var(--accent); color:#06201f; font-weight:700; cursor:pointer;
+           border-color:var(--accent); }
+  button:hover { filter:brightness(1.08); }
+  label { font-size:12px; color:var(--muted); }
+  .legend span { margin-right:14px; font-size:12px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+  svg { width:100%; height:auto; display:block; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th,td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  .best { color:var(--accent); font-weight:700; }
+  .alert { border-left:4px solid var(--danger); background:#3a2029; padding:10px 12px;
+           border-radius:6px; margin-bottom:9px; font-size:13px; }
+  .ok { border-left-color:var(--accent); background:#15342f; }
+  .pill { display:inline-block; font-size:11px; background:#24425c; border-radius:12px;
+          padding:2px 8px; margin-left:6px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:9px; }
+  .form-row input,.form-row select { width:100%; }
+  #prediction { margin-top:12px; padding:12px; border-radius:8px; background:#102a34;
+                font-size:14px; min-height:44px; }
+  .note { color:var(--muted); font-size:11.5px; line-height:1.6; }
+  img { width:100%; border-radius:8px; }
+  footer { color:var(--muted); font-size:11px; text-align:center; padding:20px; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Shelf Stock Level Forecast <span class="badge">SIMULATED FIELD LOG</span></h1>
+  <div class="sub">DSC293 · Pakistan Field Capstone · Project 14/35 ·
+      14 daily checks × 3 anonymous items · decision: how much will be left at the next check?</div>
+</header>
+<main>
+  <div class="cards">
+    <div class="card"><div class="label">Best model MAE</div>
+      <div class="value" id="kpi-mae">—</div><div class="hint">units at next check</div></div>
+    <div class="card"><div class="label">Observations</div>
+      <div class="value" id="kpi-rows">—</div><div class="hint">logged checks in the study</div></div>
+    <div class="card"><div class="label">Items / days</div>
+      <div class="value" id="kpi-items">—</div><div class="hint">anonymous codes / dates</div></div>
+    <div class="card"><div class="label">Low-stock alerts</div>
+      <div class="value" id="kpi-alerts">—</div><div class="hint" id="kpi-alert-hint">forecast below threshold</div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <h2>Stock-level trajectories <span class="pill" id="model-label"></span></h2>
+        <div class="controls">
+          <label>Model <select id="model">
+            {% for m in model_names %}<option value="{{ m }}" {% if m == default_model %}selected{% endif %}>{{ m }}</option>{% endfor %}
+          </select></label>
+          <span class="legend" id="legend"></span>
+        </div>
+        <svg id="chart" viewBox="0 0 900 340" role="img" aria-label="Stock trajectories"></svg>
+        <p class="note">Solid lines: observed counts (days 1–10). Dashed lines:
+           held-out days 11–14 with the selected model's forecasts. Shaded band marks
+           the low-stock zone.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Model comparison</h2>
+        <table id="metric-table"><thead><tr><th>Model</th><th>MAE ↓</th><th>RMSE ↓</th><th>R² ↑</th><th>Train MAE</th></tr></thead><tbody></tbody></table>
+        <p class="note">Chronological holdout: first 10 days train, last 4 days test (45 scored checks).
+           Persistence = "next count equals today's count" sanity baseline.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Recent log</h2>
+        <table id="log-table"><thead><tr><th>Date</th><th>Item</th><th>Slot</th><th>Count</th><th>Restocked</th></tr></thead><tbody></tbody></table>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <h2>Low-stock alert</h2>
+        <div class="controls">
+          <label>Alert threshold <input id="threshold" type="range" min="3" max="30" value="{{ threshold }}"></label>
+          <strong id="threshold-value">{{ threshold }} units</strong>
+        </div>
+        <div id="alerts"></div>
+        <p class="note">Alerts list the most recent held-out checks whose next-count
+           forecast falls below the threshold (up to eight). Threshold is a
+           demonstration parameter, not a supplier constraint.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Predict next check</h2>
+        <form id="predict-form">
+          <div class="form-row">
+            <select id="p-item"><option>ITEM-A</option><option>ITEM-B</option><option>ITEM-C</option></select>
+            <select id="p-slot"><option>pre_morning</option><option>post_morning</option><option>pre_evening</option><option>post_evening</option></select>
+          </div>
+          <div class="form-row">
+            <label>Count now <input id="p-stock" type="number" min="0" value="35"></label>
+            <label>Just restocked <input id="p-restock" type="number" min="0" value="0"></label>
+          </div>
+          <button type="submit">Forecast remaining count</button>
+        </form>
+        <div id="prediction">Fill the form and press forecast.</div>
+      </section>
+
+      <section class="panel">
+        <h2>MAE chart</h2>
+        <img src="/figures/model_mae.png" alt="Bar chart of model MAE">
+      </section>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:18px">
+    <strong>Data notice:</strong> this log is a reproducible simulation of a shopkeeper's
+    before/after-sale counts, created because a real field visit was not feasible.
+    It contains no real shop, person, brand, price or supplier information.
+    Do not treat its numbers as commercial records.
+  </p>
+</main>
+<footer>DSC293 Shelf Stock Level Forecast · synthetic-data capstone submission · built with Flask, scikit-learn and matplotlib</footer>
+
+<script>
+const COLORS = {'ITEM-A':'#e8833a','ITEM-B':'#5cb3e0','ITEM-C':'#6fd39a'};
+const ITEMS = Object.keys(COLORS);
+const SLOT_ORDER = ['pre_morning','post_morning','pre_evening','post_evening'];
+let state = {points:[], metrics:null, model:'{{ default_model }}', threshold:{{ threshold }}};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+async function json(url, options) {
+  const r = await fetch(url, options);
+  if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+  return r.json();
+}
+
+function key(p){ return p.date + '|' + p.slot; }
+
+function drawChart(){
+  const svg = $('chart');
+  const W=900,H=340,L=46,R=12,T=14,B=48;
+  const pts = state.points.filter(p=>ITEMS.includes(p.item));
+  const observed = pts.filter(p=>p.split==='observed' && p.day<10);
+  const forecast = pts.filter(p=>p.split==='held_out' && p.forecast!==null);
+  const keys = [...new Set([...observed,...forecast].map(key))].sort((a,b)=>{
+    const [da,sa]=a.split('|'), [db,sb]=b.split('|');
+    return da.localeCompare(db) || SLOT_ORDER.indexOf(sa)-SLOT_ORDER.indexOf(sb);
+  });
+  const xOf = new Map(keys.map((k,i)=>[k, L + i*(W-L-R)/Math.max(1,keys.length-1)]));
+  const maxY = Math.max(20, ...observed.map(p=>p.stock), ...forecast.map(p=>p.forecast));
+  const yOf = v => T + (1 - v/maxY)*(H-T-B);
+  let s = '';
+  // low-stock band
+  s += `<rect x="${L}" y="${yOf(state.threshold)}" width="${W-L-R}" height="${Math.max(0,yOf(0)-yOf(state.threshold))}" fill="#c0392b" opacity="0.10"/>`;
+  s += `<line x1="${L}" y1="${yOf(state.threshold)}" x2="${W-R}" y2="${yOf(state.threshold)}" stroke="#ff6b6b" stroke-dasharray="5 4" opacity="0.75"/>`;
+  for(let g=0; g<=4; g++){
+    const v = maxY*g/4, y=yOf(v);
+    s += `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="#25405a" opacity="0.55"/>`;
+    s += `<text x="${L-8}" y="${y+4}" fill="#9db4c7" font-size="10" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  for(let i=0;i<keys.length;i+=14){
+    const x=xOf.get(keys[i]);
+    s += `<text x="${x}" y="${H-B+18}" fill="#9db4c7" font-size="9" transform="rotate(-35 ${x} ${H-B+18})">${keys[i].slice(0,10)}</text>`;
+  }
+  ITEMS.forEach(item=>{
+    const ob = observed.filter(p=>p.item===item).sort((a,b)=>xOf.get(key(a))-xOf.get(key(b)));
+    const fc = forecast.filter(p=>p.item===item).sort((a,b)=>key(a).localeCompare(key(b)));
+    const path = arr => arr.map((p,i)=>(i?'L':'M')+xOf.get(key(p))+','+yOf(p.forecast!==undefined&&p.forecast!==null?p.forecast:p.stock)).join(' ');
+    if(ob.length>1) s += `<path d="${path(ob)}" fill="none" stroke="${COLORS[item]}" stroke-width="2"/>`;
+    if(fc.length){
+      const anchor = ob[ob.length-1];
+      const all = anchor ? [anchor,...fc] : fc;
+      s += `<path d="${path(all)}" fill="none" stroke="${COLORS[item]}" stroke-width="2.4" stroke-dasharray="6 4"/>`;
+      fc.forEach(p=>{ s += `<circle cx="${xOf.get(key(p))}" cy="${yOf(p.forecast)}" r="3" fill="${COLORS[item]}"><title>${esc(p.date)} ${esc(p.slot)}: forecast ${p.forecast.toFixed(1)}, actual ${p.actual}</title></circle>`; });
+    }
+  });
+  s += `<text x="${L}" y="${H-6}" fill="#9db4c7" font-size="10">shelf checks (chronological) →</text>`;
+  svg.innerHTML = s;
+  $('legend').innerHTML = ITEMS.map(i=>`<span><i class="dot" style="background:${COLORS[i]}"></i>${i}</span>`).join('');
+}
+
+function fillMetrics(){
+  const m = state.metrics, tb = $('metric-table').querySelector('tbody');
+  const rows = Object.entries(m.models).map(([name,v])=>({name,...v}));
+  rows.push({name:'persistence (baseline)', ...m.baseline_persistence});
+  tb.innerHTML = rows.map(r=>`<tr class="${r.name===m.best_model?'best':''}"><td>${esc(r.name)}${r.name===m.best_model?' ★':''}</td><td>${r.mae.toFixed(2)}</td><td>${r.rmse.toFixed(2)}</td><td>${r.r2.toFixed(2)}</td><td>${r.train_mae!==undefined?r.train_mae.toFixed(2):'—'}</td></tr>`).join('');
+  $('kpi-mae').textContent = m.models[m.best_model].mae.toFixed(2);
+  $('kpi-rows').textContent = '168';
+  $('kpi-items').textContent = '3 / 14';
+}
+
+async function loadSeries(){
+  const data = await json('/api/series?model='+encodeURIComponent(state.model));
+  state.points = data.points;
+  drawChart();
+  loadAlerts();
+}
+
+async function loadAlerts(){
+  const data = await json('/api/alerts?model='+encodeURIComponent(state.model)+'&threshold='+state.threshold);
+  $('kpi-alerts').textContent = data.alerts.length;
+  $('kpi-alert-hint').textContent = 'forecast below '+state.threshold+' units';
+  $('alerts').innerHTML = data.alerts.length
+    ? data.alerts.map(a=>`<div class="alert"><strong>${esc(a.item)}</strong> — ${esc(a.message)}<div class="note">${esc(a.date)} · ${esc(a.slot)} · count now ${a.current_stock}</div></div>`).join('')
+    : '<div class="alert ok">No item is forecast below the threshold.</div>';
+}
+
+async function loadLog(){
+  const rows = await json('/api/log?limit=10');
+  $('log-table').querySelector('tbody').innerHTML = rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.item_code)}</td><td>${esc(r.slot)}</td><td>${r.stock_count}</td><td>${r.restocked}</td></tr>`).join('');
+}
+
+$('model').addEventListener('change', e=>{
+  state.model = e.target.value;
+  $('model-label').textContent = state.model;
+  loadSeries();
+});
+$('threshold').addEventListener('input', e=>{
+  state.threshold = Number(e.target.value);
+  $('threshold-value').textContent = state.threshold+' units';
+  drawChart(); loadAlerts();
+});
+$('predict-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const body = {item_code:$('p-item').value, slot:$('p-slot').value,
+                stock_count:Number($('p-stock').value), restocked:Number($('p-restock').value),
+                model:state.model};
+  try {
+    const r = await json('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    $('prediction').innerHTML = `<strong>${r.predicted_remaining} units</strong> expected at next check ` +
+      `(model: ${esc(r.model)}). ${r.low_stock?'<span style="color:#ff8f8f">⚠ Low-stock alert</span>':'<span style="color:#6fd39a">✓ Above threshold</span>'}`;
+  } catch(err){ $('prediction').textContent = 'Error: '+err.message; }
+});
+
+(async function init(){
+  try {
+    state.metrics = await json('/api/metrics');
+    state.model = state.metrics.best_model;
+    $('model').value = state.model;
+    $('model-label').textContent = state.model;
+    fillMetrics();
+    await loadSeries();
+    await loadLog();
+  } catch(err){ console.error(err); }
+})();
+</script>
+</body>
+</html>

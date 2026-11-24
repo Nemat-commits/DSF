@@ -1,0 +1,39 @@
+{
+  "seed": 20261124,
+  "target": "remaining_count",
+  "primary_metric": "MAE (units remaining at next check)",
+  "split": {
+    "train_rows": 120,
+    "test_rows": 45,
+    "train_days": "2026-10-05 to 2026-10-14",
+    "test_days": "2026-10-15 to 2026-10-18",
+    "method": "chronological holdout (no shuffling)"
+  },
+  "models": {
+    "linear_regression": {
+      "mae": 4.613,
+      "rmse": 6.124,
+      "r2": 0.639,
+      "train_mae": 3.895
+    },
+    "decision_tree": {
+      "mae": 4.546,
+      "rmse": 6.123,
+      "r2": 0.639,
+      "train_mae": 2.845
+    },
+    "random_forest": {
+      "mae": 4.022,
+      "rmse": 5.823,
+      "r2": 0.673,
+      "train_mae": 1.887
+    }
+  },
+  "baseline_persistence": {
+    "mae": 4.067,
+    "rmse": 6.561,
+    "r2": 0.585
+  },
+  "best_model": "random_forest",
+  "low_stock_threshold": 20
+}
